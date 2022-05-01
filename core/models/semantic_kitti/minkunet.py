@@ -20,8 +20,7 @@ class BasicConvolutionBlock(nn.Module):
         )
 
     def forward(self, x):
-        out = self.net(x)
-        return out
+        return self.net(x)
 
 
 class BasicDeconvolutionBlock(nn.Module):
@@ -71,8 +70,7 @@ class ResidualBlock(nn.Module):
         self.relu = spnn.ReLU(True)
 
     def forward(self, x):
-        out = self.relu(self.net(x) + self.downsample(x))
-        return out
+        return self.relu(self.net(x) + self.downsample(x))
 
 
 class MinkUNet(nn.Module):
@@ -198,6 +196,4 @@ class MinkUNet(nn.Module):
         y4 = torchsparse.cat([y4, x0])
         y4 = self.up4[1](y4)
 
-        out = self.classifier(y4.F)
-
-        return out
+        return self.classifier(y4.F)

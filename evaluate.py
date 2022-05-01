@@ -97,10 +97,11 @@ def main() -> None:
     model.eval()
 
     for feed_dict in tqdm(dataflow['test'], desc='eval'):
-        _inputs = {}
-        for key, value in feed_dict.items():
-            if 'name' not in key:
-                _inputs[key] = value.cuda()
+        _inputs = {
+            key: value.cuda()
+            for key, value in feed_dict.items()
+            if 'name' not in key
+        }
 
         inputs = _inputs['lidar']
         targets = feed_dict['targets'].F.long().cuda(non_blocking=True)

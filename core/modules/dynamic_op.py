@@ -40,11 +40,11 @@ class DynamicLinear(nn.Module):
         else:
             weight = big_weight[:, self.runtime_inc_constraint]
         weight = weight[:self.runtime_outc, :].transpose(0, 1).contiguous()
-        if not self.bias:
-            return torch.mm(inputs, weight)
-        else:
-            return torch.mm(inputs,
-                            weight) + self.linear.bias[:self.runtime_outc]
+        return (
+            torch.mm(inputs, weight) + self.linear.bias[: self.runtime_outc]
+            if self.bias
+            else torch.mm(inputs, weight)
+        )
 
 
 class DynamicBatchNorm(nn.Module):
@@ -69,27 +69,30 @@ class DynamicBatchNorm(nn.Module):
     def bn_forward(self, x, bn, feature_dim):
         if bn.num_features == feature_dim or DynamicBatchNorm.SET_RUNNING_STATISTICS:
             return bn(x)
-        else:
-            exponential_average_factor = 0.0
+        exponential_average_factor = 0.0
 
-            if bn.training and bn.track_running_stats:
-                if bn.num_batches_tracked is not None:
-                    bn.num_batches_tracked += 1
-                    if bn.momentum is None:  # use cumulative moving average
-                        exponential_average_factor = 1.0 / float(
-                            bn.num_batches_tracked)
-                    else:  # use exponential moving average
-                        exponential_average_factor = bn.momentum
-            return F.batch_norm(
-                x,
-                bn.running_mean[:feature_dim],
-                bn.running_var[:feature_dim],
-                bn.weight[:feature_dim],
-                bn.bias[:feature_dim],
-                bn.training or not bn.track_running_stats,
-                exponential_average_factor,
-                bn.eps,
+        if (
+            bn.training
+            and bn.track_running_stats
+            and bn.num_batches_tracked is not None
+        ):
+            bn.num_batches_tracked += 1
+            exponential_average_factor = (
+                1.0 / float(bn.num_batches_tracked)
+                if bn.momentum is None
+                else bn.momentum
             )
+
+        return F.batch_norm(
+            x,
+            bn.running_mean[:feature_dim],
+            bn.running_var[:feature_dim],
+            bn.weight[:feature_dim],
+            bn.bias[:feature_dim],
+            bn.training or not bn.track_running_stats,
+            exponential_average_factor,
+            bn.eps,
+        )
 
     def forward(self, inputs):
         return self.bn_forward(inputs, self.bn, inputs.shape[-1])

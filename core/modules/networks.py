@@ -12,10 +12,10 @@ __all__ = ['RandomNet']
 class RandomNet(nn.Module):
 
     def random_sample(self):
-        sample = {}
-        for name, module in self.named_random_modules():
-            sample[name] = module.random_sample()
-        return sample
+        return {
+            name: module.random_sample()
+            for name, module in self.named_random_modules()
+        }
 
     def manual_select(self, sample):
         for name, module in self.named_random_modules():

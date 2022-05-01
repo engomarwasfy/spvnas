@@ -203,11 +203,7 @@ if __name__ == '__main__':
     output_dir = os.path.join(args.velodyne_dir, 'outputs')
     os.makedirs(output_dir, exist_ok=True)
 
-    if torch.cuda.is_available():
-        device = 'cuda:0'
-    else:
-        device = 'cpu'
-
+    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     if 'MinkUNet' in args.model:
         model = minkunet(args.model, pretrained=True)
     elif 'SPVCNN' in args.model:
