@@ -103,10 +103,7 @@ class SemanticKITTIInternal:
                  sample_stride=1,
                  submit=False,
                  google_mode=True):
-        if submit:
-            trainval = True
-        else:
-            trainval = False
+        trainval = bool(submit)
         self.root = root
         self.split = split
         self.voxel_size = voxel_size
@@ -143,23 +140,27 @@ class SemanticKITTIInternal:
         self.label_map = np.zeros(260)
         cnt = 0
         for label_id in label_name_mapping:
-            if label_id > 250:
-                if label_name_mapping[label_id].replace('moving-',
-                                                        '') in kept_labels:
-                    self.label_map[label_id] = reverse_label_name_mapping[
-                        label_name_mapping[label_id].replace('moving-', '')]
-                else:
-                    self.label_map[label_id] = 255
-            elif label_id == 0:
+            if (
+                label_id <= 250
+                and label_id != 0
+                and label_name_mapping[label_id] in kept_labels
+            ):
+                self.label_map[label_id] = cnt
+                reverse_label_name_mapping[
+                    label_name_mapping[label_id]] = cnt
+                cnt += 1
+            elif label_id <= 250 and label_id != 0 or label_id <= 250:
                 self.label_map[label_id] = 255
+
             else:
-                if label_name_mapping[label_id] in kept_labels:
-                    self.label_map[label_id] = cnt
+                self.label_map[label_id] = (
                     reverse_label_name_mapping[
-                        label_name_mapping[label_id]] = cnt
-                    cnt += 1
-                else:
-                    self.label_map[label_id] = 255
+                        label_name_mapping[label_id].replace('moving-', '')
+                    ]
+                    if label_name_mapping[label_id].replace('moving-', '')
+                    in kept_labels
+                    else 255
+                )
 
         self.reverse_label_name_mapping = reverse_label_name_mapping
         self.num_classes = cnt
@@ -213,9 +214,8 @@ class SemanticKITTIInternal:
                                                return_index=True,
                                                return_inverse=True)
 
-        if 'train' in self.split:
-            if len(inds) > self.num_points:
-                inds = np.random.choice(inds, self.num_points, replace=False)
+        if 'train' in self.split and len(inds) > self.num_points:
+            inds = np.random.choice(inds, self.num_points, replace=False)
 
         pc = pc_[inds]
         feat = feat_[inds]

@@ -166,8 +166,7 @@ class DynamicLinearBlock(RandomModule):
             self.net.conv.set_in_channel(in_channel=in_channel)
         else:
             self.net.conv.set_in_channel(constraint=self.in_channel_constraint)
-        out = self.net(x)
-        return out
+        return self.net(x)
 
 
 class ConvolutionBlock(nn.Module):
@@ -186,18 +185,25 @@ class ConvolutionBlock(nn.Module):
         self.ks = ks
         self.no_relu = no_relu
         self.net = nn.Sequential(
-            OrderedDict([
-                ('conv',
-                 spnn.Conv3d(inc,
-                             outc,
-                             kernel_size=ks,
-                             dilation=dilation,
-                             stride=stride,
-                             transposed=transposed)),
-                ('bn', spnn.BatchNorm(outc)),
-                ('act',
-                 spnn.ReLU(True) if not self.no_relu else nn.Sequential())
-            ]))
+            OrderedDict(
+                [
+                    (
+                        'conv',
+                        spnn.Conv3d(
+                            inc,
+                            outc,
+                            kernel_size=ks,
+                            dilation=dilation,
+                            stride=stride,
+                            transposed=transposed,
+                        ),
+                    ),
+                    ('bn', spnn.BatchNorm(outc)),
+                    ('act', nn.Sequential() if self.no_relu else spnn.ReLU(True)),
+                ]
+            )
+        )
+
         self.init_weights()
 
     def init_weights(self):
@@ -208,17 +214,17 @@ class ConvolutionBlock(nn.Module):
 
     def load_weights(self, nas_module, runtime_inc_constraint=None):
         cur_kernel = nas_module.net.conv.kernel
-        if runtime_inc_constraint is not None:
-            if self.ks > 1:
-                cur_kernel = cur_kernel[:, runtime_inc_constraint, :]
-            else:
-                cur_kernel = cur_kernel[runtime_inc_constraint]
-        else:
-            if self.ks > 1:
-                cur_kernel = cur_kernel[:, torch.arange(self.inc), :]
-            else:
-                cur_kernel = cur_kernel[torch.arange(self.inc)]
+        if runtime_inc_constraint is None:
+            cur_kernel = (
+                cur_kernel[:, torch.arange(self.inc), :]
+                if self.ks > 1
+                else cur_kernel[torch.arange(self.inc)]
+            )
 
+        elif self.ks > 1:
+            cur_kernel = cur_kernel[:, runtime_inc_constraint, :]
+        else:
+            cur_kernel = cur_kernel[runtime_inc_constraint]
         cur_kernel = cur_kernel[..., torch.arange(self.outc)]
         self.net.conv.kernel.data = cur_kernel
         self.net.bn.weight.data = nas_module.net.bn.bn.weight[:self.outc]
@@ -252,17 +258,24 @@ class DynamicConvolutionBlock(RandomModule):
         self.cr_bounds = cr_bounds
         self.no_relu = no_relu
         self.net = nn.Sequential(
-            OrderedDict([
-                ('conv',
-                 SparseDynamicConv3d(inc,
-                                     outc,
-                                     kernel_size=ks,
-                                     dilation=dilation,
-                                     stride=stride)),
-                ('bn', SparseDynamicBatchNorm(outc)),
-                ('act',
-                 spnn.ReLU(True) if not self.no_relu else nn.Sequential())
-            ]))
+            OrderedDict(
+                [
+                    (
+                        'conv',
+                        SparseDynamicConv3d(
+                            inc,
+                            outc,
+                            kernel_size=ks,
+                            dilation=dilation,
+                            stride=stride,
+                        ),
+                    ),
+                    ('bn', SparseDynamicBatchNorm(outc)),
+                    ('act', nn.Sequential() if self.no_relu else spnn.ReLU(True)),
+                ]
+            )
+        )
+
         self.runtime_inc = None
         self.runtime_outc = None
         self.in_channel_constraint = None
@@ -338,8 +351,7 @@ class DynamicConvolutionBlock(RandomModule):
         else:
             self.net.conv.set_in_channel(constraint=self.in_channel_constraint)
 
-        out = self.net(x)
-        return out
+        return self.net(x)
 
 
 class DynamicDeconvolutionBlock(RandomModule):
@@ -402,8 +414,7 @@ class DynamicDeconvolutionBlock(RandomModule):
         self.runtime_inc = in_channel
         self.net.conv.set_in_channel(in_channel=in_channel)
 
-        out = self.net(x)
-        return out
+        return self.net(x)
 
 
 class ResidualBlock(nn.Module):
@@ -414,8 +425,7 @@ class ResidualBlock(nn.Module):
         self.relu = spnn.ReLU(True)
 
     def forward(self, x):
-        out = self.relu(self.net(x) + self.downsample(x))
-        return out
+        return self.relu(self.net(x) + self.downsample(x))
 
 
 class DynamicResidualBlock(nn.Module):
@@ -504,10 +514,13 @@ class DynamicResidualBlock(nn.Module):
             net[-1].load_weights(self.net.layers[i])
 
         net = nn.Sequential(*net)
-        downsample = nn.Sequential(
-        ) if not self.use_skip_conn else self.downsample.determinize()
+        downsample = (
+            self.downsample.determinize()
+            if self.use_skip_conn
+            else nn.Sequential()
+        )
+
         return ResidualBlock(net, downsample)
 
     def forward(self, x):
-        out = self.relu(self.net(x) + self.downsample(x))
-        return out
+        return self.relu(self.net(x) + self.downsample(x))

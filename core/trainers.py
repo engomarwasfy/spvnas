@@ -38,10 +38,11 @@ class SemanticKITTITrainer(Trainer):
             self.seed + (self.epoch_num - 1) * self.num_workers + worker_id)
 
     def _run_step(self, feed_dict: Dict[str, Any]) -> Dict[str, Any]:
-        _inputs = {}
-        for key, value in feed_dict.items():
-            if 'name' not in key:
-                _inputs[key] = value.cuda()
+        _inputs = {
+            key: value.cuda()
+            for key, value in feed_dict.items()
+            if 'name' not in key
+        }
 
         inputs = _inputs['lidar']
         targets = feed_dict['targets'].F.long().cuda(non_blocking=True)
@@ -82,8 +83,7 @@ class SemanticKITTITrainer(Trainer):
         self.model.eval()
 
     def _state_dict(self) -> Dict[str, Any]:
-        state_dict = {}
-        state_dict['model'] = self.model.state_dict()
+        state_dict = {'model': self.model.state_dict()}
         state_dict['scaler'] = self.scaler.state_dict()
         state_dict['optimizer'] = self.optimizer.state_dict()
         state_dict['scheduler'] = self.scheduler.state_dict()

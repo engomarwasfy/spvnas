@@ -57,16 +57,8 @@ class RandomDepth(RandomModule):
         self.depth_max = depth_max
 
     def random_sample(self):
-        if self.depth_min is not None:
-            depth_min = self.depth_min
-        else:
-            depth_min = 0
-
-        if self.depth_max is not None:
-            depth_max = self.depth_max
-        else:
-            depth_max = len(self.layers)
-
+        depth_min = self.depth_min if self.depth_min is not None else 0
+        depth_max = self.depth_max if self.depth_max is not None else len(self.layers)
         self.depth = random.randint(depth_min, depth_max)
         return self.depth
 

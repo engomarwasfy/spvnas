@@ -44,8 +44,7 @@ class SparseDynamicConv3d(nn.Module):
             assert not transposed
 
     def extra_repr(self) -> str:
-        return 'imax={}, omax={}, s={}, d={}, t={}'.format(
-            self.inc, self.outc, self.s, self.d, self.t)
+        return f'imax={self.inc}, omax={self.outc}, s={self.s}, d={self.d}, t={self.t}'
 
     def init_weight(self):
         std = 1. / math.sqrt(self.outc if self.t else self.inc * self.k)
@@ -110,27 +109,30 @@ class SparseDynamicBatchNorm(nn.Module):
         if (bn.num_features == feature_dim
                 or SparseDynamicBatchNorm.SET_RUNNING_STATISTICS):
             return bn(x)
-        else:
-            exponential_average_factor = 0.0
+        exponential_average_factor = 0.0
 
-            if bn.training and bn.track_running_stats:
-                if bn.num_batches_tracked is not None:
-                    bn.num_batches_tracked += 1
-                    if bn.momentum is None:  # use cumulative moving average
-                        exponential_average_factor = 1.0 / float(
-                            bn.num_batches_tracked)
-                    else:  # use exponential moving average
-                        exponential_average_factor = bn.momentum
-            return F.batch_norm(
-                x,
-                bn.running_mean[:feature_dim],
-                bn.running_var[:feature_dim],
-                bn.weight[:feature_dim],
-                bn.bias[:feature_dim],
-                bn.training or not bn.track_running_stats,
-                exponential_average_factor,
-                bn.eps,
+        if (
+            bn.training
+            and bn.track_running_stats
+            and bn.num_batches_tracked is not None
+        ):
+            bn.num_batches_tracked += 1
+            exponential_average_factor = (
+                1.0 / float(bn.num_batches_tracked)
+                if bn.momentum is None
+                else bn.momentum
             )
+
+        return F.batch_norm(
+            x,
+            bn.running_mean[:feature_dim],
+            bn.running_var[:feature_dim],
+            bn.weight[:feature_dim],
+            bn.bias[:feature_dim],
+            bn.training or not bn.track_running_stats,
+            exponential_average_factor,
+            bn.eps,
+        )
 
     def forward(self, inputs):
         output_features = self.bn_foward(inputs.F, self.bn, inputs.F.shape[-1])

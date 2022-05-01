@@ -164,7 +164,6 @@ class SPVNAS(RandomNet):
                 nn.init.constant_(m.bias, 0)
 
     def random_sample(self):
-        sample = {}
         # sample layer configuration
         cur_outputs_channels = []
         for i in range(len(self.output_channels)):
@@ -173,8 +172,7 @@ class SPVNAS(RandomNet):
             c = make_divisible(c)
             cur_outputs_channels.append(c)
         self.cur_outputs_channels = cur_outputs_channels
-        sample['output_channels'] = cur_outputs_channels
-
+        sample = {'output_channels': cur_outputs_channels}
         # fix point branch
         self.point_transforms[0].manual_select(
             self.cur_outputs_channels[self.num_down_stages])
@@ -351,6 +349,4 @@ class SPVNAS(RandomNet):
         z3.F = z3.F + self.point_transforms[2](z2.F)
 
         self.classifier.set_in_channel(z3.F.shape[-1])
-        out = self.classifier(z3.F)
-
-        return out
+        return self.classifier(z3.F)

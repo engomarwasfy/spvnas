@@ -30,8 +30,13 @@ def spvnas_specialized(net_id, pretrained=True, **kwargs):
     url_base = 'https://hanlab.mit.edu/files/SPVNAS/spvnas_specialized/'
     net_config = json.load(
         open(
-            download_url(url_base + net_id + '/net.config',
-                         model_dir='.torch/spvnas_specialized/%s/' % net_id)))
+            download_url(
+                url_base + net_id + '/net.config',
+                model_dir=f'.torch/spvnas_specialized/{net_id}/',
+            )
+        )
+    )
+
 
     model = SPVNAS(
         net_config['num_classes'],
@@ -44,11 +49,16 @@ def spvnas_specialized(net_id, pretrained=True, **kwargs):
     model = model.determinize()
 
     if pretrained:
-        init = torch.load(download_url(url_base + net_id + '/init',
-                                       model_dir='.torch/spvnas_specialized/%s/'
-                                       % net_id),
-                          map_location='cuda:%d' % dist.local_rank()
-                          if torch.cuda.is_available() else 'cpu')['model']
+        init = torch.load(
+            download_url(
+                url_base + net_id + '/init',
+                model_dir=f'.torch/spvnas_specialized/{net_id}/',
+            ),
+            map_location='cuda:%d' % dist.local_rank()
+            if torch.cuda.is_available()
+            else 'cpu',
+        )['model']
+
         model.load_state_dict(init)
     return model
 
@@ -57,8 +67,13 @@ def spvnas_supernet(net_id, pretrained=True, **kwargs):
     url_base = 'https://hanlab.mit.edu/files/SPVNAS/spvnas_supernet/'
     net_config = json.load(
         open(
-            download_url(url_base + net_id + '/net.config',
-                         model_dir='.torch/spvnas_supernet/%s/' % net_id)))
+            download_url(
+                url_base + net_id + '/net.config',
+                model_dir=f'.torch/spvnas_supernet/{net_id}/',
+            )
+        )
+    )
+
 
     model = SPVNAS(
         net_config['num_classes'],
@@ -69,11 +84,16 @@ def spvnas_supernet(net_id, pretrained=True, **kwargs):
             % dist.local_rank() if torch.cuda.is_available() else 'cpu')
 
     if pretrained:
-        init = torch.load(download_url(url_base + net_id + '/init',
-                                       model_dir='.torch/spvnas_supernet/%s/'
-                                       % net_id),
-                          map_location='cuda:%d' % dist.local_rank()
-                          if torch.cuda.is_available() else 'cpu')['model']
+        init = torch.load(
+            download_url(
+                url_base + net_id + '/init',
+                model_dir=f'.torch/spvnas_supernet/{net_id}/',
+            ),
+            map_location='cuda:%d' % dist.local_rank()
+            if torch.cuda.is_available()
+            else 'cpu',
+        )['model']
+
         model.load_state_dict(init)
     return model
 
@@ -82,8 +102,13 @@ def minkunet(net_id, pretrained=True, **kwargs):
     url_base = 'https://hanlab.mit.edu/files/SPVNAS/minkunet/'
     net_config = json.load(
         open(
-            download_url(url_base + net_id + '/net.config',
-                         model_dir='.torch/minkunet/%s/' % net_id)))
+            download_url(
+                url_base + net_id + '/net.config',
+                model_dir=f'.torch/minkunet/{net_id}/',
+            )
+        )
+    )
+
 
     model = MinkUNet(
         num_classes=net_config['num_classes'], cr=net_config['cr']).to(
@@ -91,11 +116,16 @@ def minkunet(net_id, pretrained=True, **kwargs):
             % dist.local_rank() if torch.cuda.is_available() else 'cpu')
 
     if pretrained:
-        init = torch.load(download_url(url_base + net_id + '/init',
-                                       model_dir='.torch/minkunet/%s/'
-                                       % net_id),
-                          map_location='cuda:%d' % dist.local_rank()
-                          if torch.cuda.is_available() else 'cpu')['model']
+        init = torch.load(
+            download_url(
+                url_base + net_id + '/init',
+                model_dir=f'.torch/minkunet/{net_id}/',
+            ),
+            map_location='cuda:%d' % dist.local_rank()
+            if torch.cuda.is_available()
+            else 'cpu',
+        )['model']
+
         model.load_state_dict(init)
     return model
 
@@ -104,8 +134,13 @@ def spvcnn(net_id, pretrained=True, **kwargs):
     url_base = 'https://hanlab.mit.edu/files/SPVNAS/spvcnn/'
     net_config = json.load(
         open(
-            download_url(url_base + net_id + '/net.config',
-                         model_dir='.torch/spvcnn/%s/' % net_id)))
+            download_url(
+                url_base + net_id + '/net.config',
+                model_dir=f'.torch/spvcnn/{net_id}/',
+            )
+        )
+    )
+
 
     model = SPVCNN(
         num_classes=net_config['num_classes'],
@@ -116,9 +151,15 @@ def spvcnn(net_id, pretrained=True, **kwargs):
             % dist.local_rank() if torch.cuda.is_available() else 'cpu')
 
     if pretrained:
-        init = torch.load(download_url(url_base + net_id + '/init',
-                                       model_dir='.torch/spvcnn/%s/' % net_id),
-                          map_location='cuda:%d' % dist.local_rank()
-                          if torch.cuda.is_available() else 'cpu')['model']
+        init = torch.load(
+            download_url(
+                url_base + net_id + '/init',
+                model_dir=f'.torch/spvcnn/{net_id}/',
+            ),
+            map_location='cuda:%d' % dist.local_rank()
+            if torch.cuda.is_available()
+            else 'cpu',
+        )['model']
+
         model.load_state_dict(init)
     return model
