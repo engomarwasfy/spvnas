@@ -249,23 +249,27 @@ class BinVisualizer:
         self.label_map = np.zeros(260)
         cnt = 0
         for label_id in label_name_mapping:
-            if label_id > 250:
-                if label_name_mapping[label_id].replace('moving-',
-                                                        '') in kept_labels:
-                    self.label_map[label_id] = reverse_label_name_mapping[
-                        label_name_mapping[label_id].replace('moving-', '')]
-                else:
-                    self.label_map[label_id] = 255
-            elif label_id == 0:
+            if (
+                label_id <= 250
+                and label_id != 0
+                and label_name_mapping[label_id] in kept_labels
+            ):
+                self.label_map[label_id] = cnt
+                reverse_label_name_mapping[
+                    label_name_mapping[label_id]] = cnt
+                cnt += 1
+            elif label_id <= 250 and label_id != 0 or label_id <= 250:
                 self.label_map[label_id] = 255
             else:
-                if label_name_mapping[label_id] in kept_labels:
-                    self.label_map[label_id] = cnt
+                self.label_map[label_id] = (
                     reverse_label_name_mapping[
-                        label_name_mapping[label_id]] = cnt
-                    cnt += 1
-                else:
-                    self.label_map[label_id] = 255
+                        label_name_mapping[label_id].replace('moving-', '')
+                    ]
+                    if label_name_mapping[label_id].replace('moving-', '')
+                    in kept_labels
+                    else 255
+                )
+
         self.reverse_label_name_mapping = reverse_label_name_mapping
 
     def read_pc_label(self, points, label):
@@ -276,9 +280,7 @@ class BinVisualizer:
     
     def show_cloud(self, window_name='open3d'):
         # make color table
-        color_dict = {}
-        for i in range(19):
-            color_dict[i] = cmap[i, :]
+        color_dict = {i: cmap[i, :] for i in range(19)}
         color_dict[255] = [0,0,0,255]
 
         pc = o3d.geometry.PointCloud()
@@ -306,11 +308,7 @@ if __name__ == '__main__':
     output_dir = os.path.join(args.velodyne_dir, 'outputs')
     os.makedirs(output_dir, exist_ok=True)
 
-    if torch.cuda.is_available():
-        device = 'cuda:0'
-    else:
-        device = 'cpu'
-
+    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     if 'MinkUNet' in args.model:
         model = minkunet(args.model, pretrained=True)
     elif 'SPVCNN' in args.model:
@@ -342,7 +340,7 @@ if __name__ == '__main__':
         outputs = model(inputs)
         predictions = outputs.argmax(1).cpu().numpy()
         predictions = predictions[feed_dict['inverse_map']]
-        
+
         if args.visualize_backend == 'mayavi':
             fig = draw_lidar(feed_dict['pc'], predictions.astype(np.int32))
             mlab.savefig(f'{output_dir}/{vis_file_name}')
