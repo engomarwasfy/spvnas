@@ -7,10 +7,8 @@ Date: September 2017
 import argparse
 import logging
 import os
-from re import S
 
 import mayavi.mlab as mlab
-from nbformat import read
 import numpy as np
 import open3d as o3d
 

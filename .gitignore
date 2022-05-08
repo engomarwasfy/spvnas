@@ -1,5 +1,4 @@
-.vscode/*
 .vscode/
-.torch/*
-*/__pycache__/*
+.torch/
+*/__pycache__/
 *.pyc
