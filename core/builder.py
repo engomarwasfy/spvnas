@@ -41,6 +41,16 @@ def make_model() -> nn.Module:
                        cr=cr,
                        pres=configs.dataset.voxel_size,
                        vres=configs.dataset.voxel_size)
+    elif configs.model.name == 'spvcnnv1':
+        from core.models.semantic_kitti import SPVCNNV1
+        if 'cr' in configs.model:
+            cr = configs.model.cr
+        else:
+            cr = 1.0
+        model = SPVCNNV1(num_classes=configs.data.num_classes,
+                       cr=cr,
+                       pres=configs.dataset.voxel_size,
+                       vres=configs.dataset.voxel_size)
     else:
         raise NotImplementedError(configs.model.name)
     return model
