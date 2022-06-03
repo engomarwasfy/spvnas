@@ -173,7 +173,14 @@ class SemanticKITTIInternal:
 
     def __getitem__(self, index):
         with open(self.files[index], 'rb') as b:
-            block_ = np.fromfile(b, dtype=np.float32).reshape(-1, 4)
+            block_=[]
+            try:
+                block_ = np.fromfile(b, dtype=np.float32).reshape(-1, 4)
+            except:
+                print("hhhhhh")
+                return self.__getitem__(1)
+                
+                
         block = np.zeros_like(block_)
 
         if 'train' in self.split:
