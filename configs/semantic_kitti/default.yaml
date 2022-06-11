@@ -5,16 +5,16 @@ data:
 
 train:
   seed: 1588147245
-  deterministic: True
+  deterministic: False
 
 dataset:
   name: semantic_kitti
-  root: /media/wasfy/One Touch1/TA/drive/All/omarwasfy/Master/Thesis/Datasets/dataset/sequences
+  root: /media/wasfy/One Touch/TA/drive/All/omarwasfy/Master/Thesis/Datasets/dataset/sequences
   num_points: 80000
   voxel_size: 0.05
 
 num_epochs: 15
-batch_size: 1
+batch_size: 2
 
 criterion:
   name: cross_entropy
@@ -25,7 +25,7 @@ optimizer:
   lr: 2.4e-1
   weight_decay: 1.0e-4
   momentum: 0.9
-  nesterov: false
+  nesterov: true
 
 scheduler:
   name: cosine_warmup
