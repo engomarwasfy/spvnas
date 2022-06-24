@@ -41,8 +41,7 @@ label_name_mapping = {
     255: 'moving-motorcyclist',
     256: 'moving-on-rails',
     257: 'moving-bus',
-    258: 'moving-truck',
-    259: 'moving-other-vehicle'
+    258: 'moving-truck',    259: 'moving-other-vehicle'
 }
 
 kept_labels = [
@@ -116,7 +115,8 @@ class SemanticKITTIInternal:
         self.seqs = []
         if split == 'train':
             self.seqs = [
-                '00', '01', '02', '03', '04', '05', '06', '07', '09', '10'
+             #   '02'
+               '00', '01', '02', '03', '04', '05', '06', '07', '09', '10'
             ]
             if self.google_mode or trainval:
                 self.seqs.append('08')

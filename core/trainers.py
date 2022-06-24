@@ -96,4 +96,7 @@ class SemanticKITTITrainer(Trainer):
         self.scheduler.load_state_dict(state_dict['scheduler'])
 
     def _load_previous_checkpoint(self, checkpoint_path: str) -> None:
-        pass
+        if checkpoint_path is not None:
+            self._load_state_dict(torch.load(checkpoint_path))
+        else :
+            pass
