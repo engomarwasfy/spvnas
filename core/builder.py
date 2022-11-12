@@ -11,6 +11,8 @@ __all__ = [
     'make_scheduler'
 ]
 
+from core.models.semantic_kitti.minkunet import U2NET
+
 
 def make_dataset() -> Dataset:
     if configs.dataset.name == 'semantic_kitti':
@@ -30,7 +32,7 @@ def make_model() -> nn.Module:
             cr = configs.model.cr
         else:
             cr = 1.0
-        model = MinkUNet(num_classes=configs.data.num_classes, cr=cr)
+        model = U2NET(num_classes=configs.data.num_classes, cr=cr,cs=[64, 64, 64, 64, 64, 64, 64, 64, 64],number_of_encoding_layers=4)
     elif configs.model.name == 'spvcnn':
         from core.models.semantic_kitti import SPVCNN
         if 'cr' in configs.model:
