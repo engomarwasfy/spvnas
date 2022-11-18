@@ -1,8 +1,11 @@
+**/logging
 .vscode/
 .torch/
 */__pycache__/
 *.pyc
-runs/**
 .idea/**
 
 
+/.gitignore
+/.idea/**
+/runs/**

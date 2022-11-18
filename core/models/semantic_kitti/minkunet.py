@@ -93,10 +93,6 @@ class MinkUNet(nn.Module):
             spnn.BatchNorm(cs[0]), spnn.ReLU(True),
             spnn.Conv3d(cs[0], cs[0], kernel_size=3, stride=1),
             spnn.BatchNorm(cs[0]), spnn.ReLU(True))
-        self.stemOut = nn.Sequential(
-            spnn.Conv3d(cs[-1],output_kernel_maps , kernel_size=1, stride=1),
-            spnn.BatchNorm(output_kernel_maps), spnn.ReLU(True)
-        )
         self.encoders =nn.Sequential()
         self.decoders = nn.Sequential()
         for i in range(0,number_of_encoding_layers):
@@ -112,7 +108,6 @@ class MinkUNet(nn.Module):
                     ResidualBlock(cs[number_of_encoding_layers+i+1], cs[number_of_encoding_layers+i+1], ks=3, stride=1, dilation=1),
                 )
                 ]))
-        #self.classifier = nn.Sequential(nn.Linear(cs[-1], number_of_classes))
         self.weight_initialization()
         self.dropout = nn.Dropout(0.3, True)
 
@@ -126,6 +121,7 @@ class MinkUNet(nn.Module):
         xs=[]
         ys=[]
         xs.append(self.stemIn(x))
+        #xs.append(x)
         for i in range(0,self.number_of_encoding_layers):
             xs.append(self.encoders[i](xs[i]))
         ys.append(xs[-1])
@@ -134,13 +130,13 @@ class MinkUNet(nn.Module):
             y=torchsparse.cat((y,xs[self.number_of_encoding_layers-i-1]))
             y=self.decoders[i][1](y)
             ys.append(y)
-        out = self.stemOut(ys[-1])
+        out = (ys[-1])
 
         return out
 
 class U2NET(nn.Module):
 
-    def __init__(self,u2Interleavinglayers,number_of_encoding_layers,cs,**kwargs):
+    def __init__(self,number_of_encoding_layers,cs,**kwargs):
         super().__init__()
 
         cr = kwargs.get('cr', 1.0)
@@ -149,23 +145,19 @@ class U2NET(nn.Module):
         self.run_up = kwargs.get('run_up', True)
         self.cs = cs
         self.number_of_encoding_layers = number_of_encoding_layers
+        self.residual_block = ResidualBlock(cs[number_of_encoding_layers], cs[number_of_encoding_layers], ks=3, stride=1, dilation=1)
         number_of_classes =kwargs['num_classes']
 
-        self.upsample = nn.Sequential(spnn.Conv3d(u2Interleavinglayers,u2Interleavinglayers , kernel_size=1, stride=1, transposed=True),
-            spnn.BatchNorm(u2Interleavinglayers), spnn.ReLU(True))
-        self.stem = nn.Sequential(
-            spnn.Conv3d(4, u2Interleavinglayers, kernel_size=3, stride=1),
-            spnn.BatchNorm(u2Interleavinglayers), spnn.ReLU(True),
-            spnn.Conv3d(u2Interleavinglayers, u2Interleavinglayers, kernel_size=3, stride=1),
-            spnn.BatchNorm(u2Interleavinglayers), spnn.ReLU(True))
         self.encoders =nn.Sequential()
         self.decoders = nn.Sequential()
         length=len(cs)
         decoder_Weight_maps_count=0
         for i in range(0,number_of_encoding_layers):
-            self.encoders.append(MinkUNet(u2Interleavinglayers,u2Interleavinglayers,number_of_encoding_layers=number_of_encoding_layers-i,decoder=False,cs=cs[i:length-i],number_of_classes=number_of_classes))
-            self.decoders.append(MinkUNet(u2Interleavinglayers*2,u2Interleavinglayers,number_of_encoding_layers=number_of_encoding_layers-i,decoder=True,cs=cs[i:length-i],number_of_classes=number_of_classes))
-            decoder_Weight_maps_count+=u2Interleavinglayers
+            self.encoders.append(MinkUNet(4 if i==0 else cs[-i],cs[-i-1],number_of_encoding_layers=number_of_encoding_layers-i,decoder=False,cs=cs[i:length-i],number_of_classes=number_of_classes))
+            if(i<number_of_encoding_layers-1):
+                self.decoders.append(MinkUNet(cs[number_of_encoding_layers+i]+cs[number_of_encoding_layers+i+1],cs[number_of_encoding_layers+i+2],number_of_encoding_layers=i+1,decoder=True,cs=cs[number_of_encoding_layers-i-1:number_of_encoding_layers+i+2],number_of_classes=number_of_classes))
+                decoder_Weight_maps_count+=cs[number_of_encoding_layers+i]
+        decoder_Weight_maps_count+=cs[2*number_of_encoding_layers-1]
         self.classifier = nn.Sequential(nn.Linear(decoder_Weight_maps_count, kwargs['num_classes']))
         self.weight_initialization()
         self.dropout = nn.Dropout(0.3, True)
@@ -179,19 +171,17 @@ class U2NET(nn.Module):
     def forward(self, x):
         xs=[]
         ys=[]
-        xs.append(self.stem(x))
+        xs.append(x)
         for i in range(0,self.number_of_encoding_layers):
             xs.append(self.encoders[i].forward(xs[i]))
-        ys.append(xs[-1])
-        y=xs[-1]
-        y=torchsparse.cat((y,y))
-        y = self.decoders[0].forward(y)
+        y=self.residual_block.forward(xs[-1])
         ys.append(y)
-        for i in range(1,self.number_of_encoding_layers-1):
-            y=torchsparse.cat((ys[i],xs[-i]))
+        for i in range(0,self.number_of_encoding_layers-1):
+            y=torchsparse.cat((ys[i],xs[-i-1]))
             y = self.decoders[i].forward(y)
             ys.append(y)
-        z=torchsparse.cat((ys[-1],ys[-2],ys[-3],ys[-4]))
+
+        z=torchsparse.cat((ys))
         out = self.classifier(z.F)
 
         return out

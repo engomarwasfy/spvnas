@@ -32,7 +32,7 @@ def make_model() -> nn.Module:
             cr = configs.model.cr
         else:
             cr = 1.0
-        model = U2NET(u2Interleavinglayers=4,number_of_encoding_layers=4,cr=cr,cs=[32, 32, 64, 128, 256, 256, 128, 96, 96],num_classes=configs.data.num_classes)
+        model = U2NET(u2Interleavinglayers=4,number_of_encoding_layers=4,cr=cr,cs=[32, 32, 64, 128, 256, 256, 128, 64, 64],num_classes=configs.data.num_classes)
     elif configs.model.name == 'spvcnn':
         from core.models.semantic_kitti import SPVCNN
         if 'cr' in configs.model:
