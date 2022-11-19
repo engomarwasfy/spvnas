@@ -147,20 +147,25 @@ class U2NET(nn.Module):
         self.number_of_encoding_layers = number_of_encoding_layers
         self.residual_block = ResidualBlock(cs[number_of_encoding_layers], cs[number_of_encoding_layers], ks=3, stride=1, dilation=1)
         number_of_classes =kwargs['num_classes']
-
         self.encoders =nn.Sequential()
         self.decoders = nn.Sequential()
+        self.interEncoders =nn.Sequential()
+        self.interDecoders = nn.Sequential()
         length=len(cs)
         decoder_Weight_maps_count=0
         for i in range(0,number_of_encoding_layers):
             self.encoders.append(MinkUNet(4 if i==0 else cs[-i],cs[-i-1],number_of_encoding_layers=number_of_encoding_layers-i,decoder=False,cs=cs[i:length-i],number_of_classes=number_of_classes))
-            if(i<number_of_encoding_layers-1):
-                self.decoders.append(MinkUNet(cs[number_of_encoding_layers+i]+cs[number_of_encoding_layers+i+1],cs[number_of_encoding_layers+i+2],number_of_encoding_layers=i+1,decoder=True,cs=cs[number_of_encoding_layers-i-1:number_of_encoding_layers+i+2],number_of_classes=number_of_classes))
-                decoder_Weight_maps_count+=cs[number_of_encoding_layers+i]
-        decoder_Weight_maps_count+=cs[2*number_of_encoding_layers-1]
+            self.decoders.append(MinkUNet(cs[number_of_encoding_layers+i]+cs[number_of_encoding_layers+i+1],cs[number_of_encoding_layers+i+1],number_of_encoding_layers=i+1,decoder=True,cs=cs[number_of_encoding_layers-i-1:number_of_encoding_layers+i+2],number_of_classes=number_of_classes))
+            decoder_Weight_maps_count+=cs[number_of_encoding_layers+i+1]
         self.classifier = nn.Sequential(nn.Linear(decoder_Weight_maps_count, kwargs['num_classes']))
         self.weight_initialization()
         self.dropout = nn.Dropout(0.3, True)
+        for i in range(0,number_of_encoding_layers):
+            self.interEncoders.append(nn.Sequential(
+                BasicConvolutionBlock(cs[-i-1], cs[-i-1], ks=2, stride=2, dilation=1)))
+            self.interDecoders.append(nn.Sequential(
+                    BasicDeconvolutionBlock(cs[number_of_encoding_layers+i+1],cs[number_of_encoding_layers+i+1], ks=2, stride=2)
+                    ))
 
     def weight_initialization(self):
         for m in self.modules():
@@ -171,17 +176,29 @@ class U2NET(nn.Module):
     def forward(self, x):
         xs=[]
         ys=[]
-        xs.append(x)
-        for i in range(0,self.number_of_encoding_layers):
-            xs.append(self.encoders[i].forward(xs[i]))
+        zs=[]
+        xs.append(self.encoders[0].forward(x))
+        for i in range(1,self.number_of_encoding_layers):
+            xs.append(self.encoders[i].forward(
+                self.interEncoders[i-1]
+                .forward(xs[i-1])))
         y=self.residual_block.forward(xs[-1])
-        ys.append(y)
-        for i in range(0,self.number_of_encoding_layers-1):
-            y=torchsparse.cat((ys[i],xs[-i-1]))
+        y = torchsparse.cat((y, xs[-1]))
+        y = self.decoders[0].forward(y)
+        ys.append(self.interDecoders[0](y))
+        for i in range(1,self.number_of_encoding_layers):
+            y=torchsparse.cat((ys[i-1],xs[-i-1]))
             y = self.decoders[i].forward(y)
-            ys.append(y)
-
-        z=torchsparse.cat((ys))
+            if i<self.number_of_encoding_layers-1:
+                ys.append(self.interDecoders[i](y))
+            else:
+                ys.append(y)
+        for i in range(0,self.number_of_encoding_layers):
+            z=ys[i]
+            for j in range(0,self.number_of_encoding_layers-i-2):
+                z=self.interDecoders[i](z)
+            zs.append(z)
+        z=torchsparse.cat((zs))
         out = self.classifier(z.F)
 
         return out
