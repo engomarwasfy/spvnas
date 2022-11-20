@@ -110,6 +110,8 @@ class MinkUNet(nn.Module):
                 ]))
         self.weight_initialization()
         self.dropout = nn.Dropout(0.3, True)
+        self.classifier = nn.Sequential(nn.Linear(cs[-1], number_of_classes))
+
 
     def weight_initialization(self):
         for m in self.modules():
@@ -130,7 +132,7 @@ class MinkUNet(nn.Module):
             y=torchsparse.cat((y,xs[self.number_of_encoding_layers-i-1]))
             y=self.decoders[i][1](y)
             ys.append(y)
-        out = (ys[-1])
+        out = self.classifier(ys[-1].F)
 
         return out
 
