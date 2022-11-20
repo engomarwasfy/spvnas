@@ -153,10 +153,12 @@ class U2NET(nn.Module):
         self.interDecoders = nn.Sequential()
         length=len(cs)
         decoder_Weight_maps_count=0
+        self.classifiers = nn.Sequential()
         for i in range(0,number_of_encoding_layers):
             self.encoders.append(MinkUNet(4 if i==0 else cs[-i],cs[-i-1],number_of_encoding_layers=number_of_encoding_layers-i,decoder=False,cs=cs[i:length-i],number_of_classes=number_of_classes))
             self.decoders.append(MinkUNet(cs[number_of_encoding_layers+i]+cs[number_of_encoding_layers+i+1],cs[number_of_encoding_layers+i+1],number_of_encoding_layers=i+1,decoder=True,cs=cs[number_of_encoding_layers-i-1:number_of_encoding_layers+i+2],number_of_classes=number_of_classes))
             decoder_Weight_maps_count+=cs[number_of_encoding_layers+i+1]
+            self.classifiers.append(nn.Linear(cs[number_of_encoding_layers+i+1], kwargs['num_classes']))
         self.classifier = nn.Sequential(nn.Linear(decoder_Weight_maps_count, kwargs['num_classes']))
         self.weight_initialization()
         self.dropout = nn.Dropout(0.3, True)
@@ -198,8 +200,10 @@ class U2NET(nn.Module):
             for j in range(0,self.number_of_encoding_layers-i-2):
                 z=self.interDecoders[i](z)
             zs.append(z)
-        z=torchsparse.cat((zs))
-        out = self.classifier(z.F)
+        #z=torchsparse.cat((zs))
+        outs=[]
+        for i in range(0,len(zs)):
+            outs.append(self.classifiers[i](zs[i].F))
 
-        return out
+        return outs
 

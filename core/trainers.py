@@ -48,35 +48,36 @@ class SemanticKITTITrainer(Trainer):
 
         with amp.autocast(enabled=self.amp_enabled):
             outputs = self.model(inputs)
+            losses =[]
+            loss=0
+            for i in range(len(outputs)):
+                if outputs[i].requires_grad:
+                    losses.append(self.criterion(outputs[i], targets))
+                    loss+=losses[i]
+            if outputs[0].requires_grad:
+                self.summary.add_scalar('loss', loss.item())
+                self.optimizer.zero_grad()
+                self.scaler.scale(loss).backward()
+                self.scaler.step(self.optimizer)
+                self.scaler.update()
+                self.scheduler.step()
+            else:
+                invs = feed_dict['inverse_map']
+                all_labels = feed_dict['targets_mapped']
+                _outputs = []
+                _targets = []
+                for idx in range(invs.C[:, -1].max() + 1):
+                    cur_scene_pts = (inputs.C[:, -1] == idx).cpu().numpy()
+                    cur_inv = invs.F[invs.C[:, -1] == idx].cpu().numpy()
+                    cur_label = (all_labels.C[:, -1] == idx).cpu().numpy()
+                    outputs_mapped = outputs[cur_scene_pts][cur_inv].argmax(1)
+                    targets_mapped = all_labels.F[cur_label]
+                    _outputs.append(outputs_mapped)
+                    _targets.append(targets_mapped)
+                outputs = torch.cat(_outputs, 0)
+                targets = torch.cat(_targets, 0)
 
-            if outputs.requires_grad:
-                loss = self.criterion(outputs, targets)
-
-        if outputs.requires_grad:
-            self.summary.add_scalar('loss', loss.item())
-
-            self.optimizer.zero_grad()
-            self.scaler.scale(loss).backward()
-            self.scaler.step(self.optimizer)
-            self.scaler.update()
-            self.scheduler.step()
-        else:
-            invs = feed_dict['inverse_map']
-            all_labels = feed_dict['targets_mapped']
-            _outputs = []
-            _targets = []
-            for idx in range(invs.C[:, -1].max() + 1):
-                cur_scene_pts = (inputs.C[:, -1] == idx).cpu().numpy()
-                cur_inv = invs.F[invs.C[:, -1] == idx].cpu().numpy()
-                cur_label = (all_labels.C[:, -1] == idx).cpu().numpy()
-                outputs_mapped = outputs[cur_scene_pts][cur_inv].argmax(1)
-                targets_mapped = all_labels.F[cur_label]
-                _outputs.append(outputs_mapped)
-                _targets.append(targets_mapped)
-            outputs = torch.cat(_outputs, 0)
-            targets = torch.cat(_targets, 0)
-
-        return {'outputs': outputs, 'targets': targets}
+            return {'outputs': outputs, 'targets': targets}
 
     def _after_epoch(self) -> None:
         self.model.eval()
