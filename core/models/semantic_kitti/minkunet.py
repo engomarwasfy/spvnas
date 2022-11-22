@@ -200,8 +200,9 @@ class U2NET(nn.Module):
             for j in range(0,self.number_of_encoding_layers-i-2):
                 z=self.interDecoders[i](z)
             zs.append(z)
-        #z=torchsparse.cat((zs))
+        z=torchsparse.cat((zs))
         outs=[]
+        outs.append(self.classifier(z.F))
         for i in range(0,len(zs)):
             outs.append(self.classifiers[i](zs[i].F))
 
