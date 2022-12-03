@@ -6,7 +6,7 @@ from urllib.request import urlretrieve
 import torch
 from torchpack import distributed as dist
 
-from core.models.semantic_kitti.minkunet import MinkUNet
+from core.models.semantic_kitti.minkunet import MinkUNet, U2NET
 from core.models.semantic_kitti.spvcnn import SPVCNN
 from core.models.semantic_kitti.spvnas import SPVNAS
 
@@ -79,6 +79,7 @@ def spvnas_supernet(net_id, pretrained=True, **kwargs):
 
 
 def minkunet(net_id, pretrained=True, **kwargs):
+    '''
     url_base = 'https://hanlab.mit.edu/files/SPVNAS/minkunet/'
     net_config = json.load(
         open(
@@ -91,12 +92,10 @@ def minkunet(net_id, pretrained=True, **kwargs):
             % dist.local_rank() if torch.cuda.is_available() else 'cpu')
 
     if pretrained:
-        init = torch.load(download_url(url_base + net_id + '/init',
-                                       model_dir='.torch/minkunet/%s/'
-                                       % net_id),
-                          map_location='cuda:%d' % dist.local_rank()
-                          if torch.cuda.is_available() else 'cpu')['model']
-        model.load_state_dict(init)
+    '''
+    model = U2NET(number_of_encoding_layers=4,cr=0.25,cs=[32, 32, 64, 128, 256, 256, 128, 64, 64],num_classes=19)
+    init = torch.load('runs/run-f5e16585-1bbb301b/checkpoints/max-iou-test.pt',map_location='cuda:%d'%dist.local_rank() if torch.cuda.is_available() else 'cpu')['model']
+    model.load_state_dict(init)
     return model
 
 
