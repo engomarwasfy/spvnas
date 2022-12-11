@@ -114,7 +114,7 @@ def main() -> None:
             cur_scene_pts = (inputs.C[:, -1] == idx).cpu().numpy()
             cur_inv = invs.F[invs.C[:, -1] == idx].cpu().numpy()
             cur_label = (all_labels.C[:, -1] == idx).cpu().numpy()
-            outputs_mapped = outputs[cur_scene_pts][cur_inv].argmax(1)
+            outputs_mapped = outputs[4][cur_scene_pts][cur_inv].argmax(1)
             targets_mapped = all_labels.F[cur_label]
             _outputs.append(outputs_mapped)
             _targets.append(targets_mapped)
