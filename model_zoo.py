@@ -79,24 +79,18 @@ def spvnas_supernet(net_id, pretrained=True, **kwargs):
 
 
 def minkunet(net_id, pretrained=True, **kwargs):
+    '''
     url_base = 'https://hanlab.mit.edu/files/SPVNAS/minkunet/'
     net_config = json.load(
         open(
             download_url(url_base + net_id + '/net.config',
                          model_dir='.torch/minkunet/%s/' % net_id)))
-
+    '''
     model = MinkUNet(
-        num_classes=net_config['num_classes'], cr=net_config['cr']).to(
-            'cuda:%d'
-            % dist.local_rank() if torch.cuda.is_available() else 'cpu')
+        num_classes=19, cr=0.25)
 
-    if pretrained:
-        init = torch.load(download_url(url_base + net_id + '/init',
-                                       model_dir='.torch/minkunet/%s/'
-                                       % net_id),
-                          map_location='cuda:%d' % dist.local_rank()
-                          if torch.cuda.is_available() else 'cpu')['model']
-        model.load_state_dict(init)
+    init = torch.load('runs/run-f5e7d5e8-b6132750/checkpoints/max-iou-test.pt')['model']
+    model.load_state_dict(init)
     return model
 
 

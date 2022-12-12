@@ -20,10 +20,9 @@ from model_zoo import minkunet, spvcnn, spvnas_specialized
 
 
 def main() -> None:
-    dist.init()
 
     torch.backends.cudnn.benchmark = True
-    torch.cuda.set_device(dist.local_rank())
+    #torch.cuda.set_device(dist.local_rank())
 
     parser = argparse.ArgumentParser()
     parser.add_argument('config', metavar='FILE', help='config file')
@@ -63,14 +62,11 @@ def main() -> None:
     elif 'spvcnn' in args.name.lower():
         model = spvcnn(args.name)
     elif 'mink' in args.name.lower():
-        model = minkunet(args.name)
+        model = minkunet(args.name).cuda()
     else:
         raise NotImplementedError
 
-    model = torch.nn.parallel.DistributedDataParallel(
-        model.cuda(),
-        device_ids=[dist.local_rank()],
-        find_unused_parameters=True)
+
     model.eval()
 
     criterion = builder.make_criterion()
