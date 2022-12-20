@@ -20,8 +20,7 @@ class BasicConvolutionBlock(nn.Module):
         )
 
     def forward(self, x):
-        out = self.net(x)
-        return out
+        return self.net(x)
 
 
 class BasicDeconvolutionBlock(nn.Module):
@@ -71,8 +70,7 @@ class ResidualBlock(nn.Module):
         self.relu = spnn.ReLU(True)
 
     def forward(self, x):
-        out = self.relu(self.net(x) + self.downsample(x))
-        return out
+        return self.relu(self.net(x) + self.downsample(x))
 
 
 class MinkUNet(nn.Module):
@@ -95,7 +93,7 @@ class MinkUNet(nn.Module):
             spnn.BatchNorm(cs[0]), spnn.ReLU(True))
         self.encoders =nn.Sequential()
         self.decoders = nn.Sequential()
-        for i in range(0,number_of_encoding_layers):
+        for i in range(number_of_encoding_layers):
             self.encoders.append(nn.Sequential(
                 BasicConvolutionBlock(cs[i], cs[i], ks=2, stride=2, dilation=1),
                 ResidualBlock(cs[i], cs[i+1], ks=3, stride=1, dilation=1),
@@ -120,21 +118,18 @@ class MinkUNet(nn.Module):
                 nn.init.constant_(m.bias, 0)
 
     def forward(self, x):
-        xs=[]
-        ys=[]
-        xs.append(self.stemIn(x))
+        xs = [self.stemIn(x)]
         #xs.append(x)
-        for i in range(0,self.number_of_encoding_layers):
-            xs.append(self.encoders[i](xs[i]))
-        ys.append(xs[-1])
-        for i in range(0,self.number_of_encoding_layers):
+        xs.extend(
+            self.encoders[i](xs[i]) for i in range(self.number_of_encoding_layers)
+        )
+        ys = [xs[-1]]
+        for i in range(self.number_of_encoding_layers):
             y=self.decoders[i][0](ys[i])
             y=torchsparse.cat((y,xs[self.number_of_encoding_layers-i-1]))
             y=self.decoders[i][1](y)
             ys.append(y)
-        out = self.classifier(ys[-1].F)
-
-        return out
+        return self.classifier(ys[-1].F)
 
 class U2NET(nn.Module):
 
@@ -155,14 +150,14 @@ class U2NET(nn.Module):
         self.interDecoders = nn.Sequential()
         length=len(cs)
         decoder_Weight_maps_count=0
-        for i in range(0,number_of_encoding_layers):
+        for i in range(number_of_encoding_layers):
             self.encoders.append(MinkUNet(4 if i==0 else cs[-i],cs[-i-1],number_of_encoding_layers=number_of_encoding_layers-i,decoder=False,cs=cs[i:length-i],number_of_classes=number_of_classes))
             self.decoders.append(MinkUNet(cs[number_of_encoding_layers+i]+cs[number_of_encoding_layers+i+1],cs[number_of_encoding_layers+i+1],number_of_encoding_layers=i+1,decoder=True,cs=cs[number_of_encoding_layers-i-1:number_of_encoding_layers+i+2],number_of_classes=number_of_classes))
             decoder_Weight_maps_count+=cs[number_of_encoding_layers+i+1]
         self.classifier = nn.Sequential(nn.Linear(decoder_Weight_maps_count, kwargs['num_classes']))
         self.weight_initialization()
         self.dropout = nn.Dropout(0.3, True)
-        for i in range(0,number_of_encoding_layers):
+        for i in range(number_of_encoding_layers):
             self.interEncoders.append(nn.Sequential(
                 BasicConvolutionBlock(cs[-i-1], cs[-i-1], ks=2, stride=2, dilation=1)))
             self.interDecoders.append(nn.Sequential(
@@ -176,18 +171,16 @@ class U2NET(nn.Module):
                 nn.init.constant_(m.bias, 0)
 
     def forward(self, x):
-        xs=[]
-        ys=[]
         zs=[]
-        xs.append(self.encoders[0].forward(x))
-        for i in range(1,self.number_of_encoding_layers):
-            xs.append(self.encoders[i].forward(
-                self.interEncoders[i-1]
-                .forward(xs[i-1])))
+        xs = [self.encoders[0].forward(x)]
+        xs.extend(
+            self.encoders[i].forward(self.interEncoders[i - 1].forward(xs[i - 1]))
+            for i in range(1, self.number_of_encoding_layers)
+        )
         y=self.residual_block.forward(xs[-1])
         y = torchsparse.cat((y, xs[-1]))
         y = self.decoders[0].forward(y)
-        ys.append(self.interDecoders[0](y))
+        ys = [self.interDecoders[0](y)]
         for i in range(1,self.number_of_encoding_layers):
             y=torchsparse.cat((ys[i-1],xs[-i-1]))
             y = self.decoders[i].forward(y)
@@ -195,13 +188,11 @@ class U2NET(nn.Module):
                 ys.append(self.interDecoders[i](y))
             else:
                 ys.append(y)
-        for i in range(0,self.number_of_encoding_layers):
+        for i in range(self.number_of_encoding_layers):
             z=ys[i]
-            for j in range(0,self.number_of_encoding_layers-i-2):
+            for _ in range(self.number_of_encoding_layers-i-2):
                 z=self.interDecoders[i](z)
             zs.append(z)
         z=torchsparse.cat((zs))
-        out = self.classifier(z.F)
-
-        return out
+        return self.classifier(z.F)
 

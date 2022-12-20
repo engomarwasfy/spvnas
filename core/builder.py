@@ -15,31 +15,24 @@ from core.models.semantic_kitti.minkunet import U2NET
 
 
 def make_dataset() -> Dataset:
-    if configs.dataset.name == 'semantic_kitti':
-        from core.datasets import SemanticKITTI
-        dataset = SemanticKITTI(root=configs.dataset.root,
-                                num_points=configs.dataset.num_points,
-                                voxel_size=configs.dataset.voxel_size)
-    else:
+    if configs.dataset.name != 'semantic_kitti':
         raise NotImplementedError(configs.dataset.name)
+    from core.datasets import SemanticKITTI
+    dataset = SemanticKITTI(root=configs.dataset.root,
+                            num_points=configs.dataset.num_points,
+                            voxel_size=configs.dataset.voxel_size)
     return dataset
 
 
 def make_model() -> nn.Module:
     if configs.model.name == 'minkunet':
         from core.models.semantic_kitti import MinkUNet
-        if 'cr' in configs.model:
-            cr = configs.model.cr
-        else:
-            cr = 1.0
+        cr = configs.model.cr if 'cr' in configs.model else 1.0
         #model = U2NET(number_of_encoding_layers=4,cr=cr,cs=[32, 32, 64, 128, 256, 256, 128, 64, 64],num_classes=configs.data.num_classes)
         model = MinkUNet(number_of_encoding_layers=4,input_kernel_maps=4,output_kernel_maps=64,cr=cr,cs=[32, 32, 64, 128, 256, 256, 128, 64, 64],number_of_classes=configs.data.num_classes,num_classes=configs.data.num_classes,decoder=False)
     elif configs.model.name == 'spvcnn':
         from core.models.semantic_kitti import SPVCNN
-        if 'cr' in configs.model:
-            cr = configs.model.cr
-        else:
-            cr = 1.0
+        cr = configs.model.cr if 'cr' in configs.model else 1.0
         model = SPVCNN(num_classes=configs.data.num_classes,
                        cr=cr,
                        pres=configs.dataset.voxel_size,
