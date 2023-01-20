@@ -29,7 +29,11 @@ class SemanticKITTITrainer(Trainer):
         self.amp_enabled = amp_enabled
         self.scaler = amp.GradScaler(enabled=self.amp_enabled)
         self.epoch_num = 1
+        self.continue_epoch_num=1
 
+    def _before_train(self) -> None:
+        if (self.epoch_num < self.continue_epoch_num):
+            self.epoch_num = self.continue_epoch_num
     def _before_epoch(self) -> None:
         self.model.train()
         self.dataflow.sampler.set_epoch(self.epoch_num - 1)
@@ -88,6 +92,7 @@ class SemanticKITTITrainer(Trainer):
         state_dict['scaler'] = self.scaler.state_dict()
         state_dict['optimizer'] = self.optimizer.state_dict()
         state_dict['scheduler'] = self.scheduler.state_dict()
+        state_dict['epoch_num'] = self.epoch_num
         return state_dict
 
     def _load_state_dict(self, state_dict: Dict[str, Any]) -> None:
@@ -95,6 +100,7 @@ class SemanticKITTITrainer(Trainer):
         self.scaler.load_state_dict(state_dict.pop('scaler'))
         self.optimizer.load_state_dict(state_dict['optimizer'])
         self.scheduler.load_state_dict(state_dict['scheduler'])
+        self.continue_epoch_num = state_dict['epoch_num']
 
     def _load_previous_checkpoint(self, checkpoint_path: str) -> None:
         if checkpoint_path is not None:
