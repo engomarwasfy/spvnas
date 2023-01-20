@@ -29,7 +29,7 @@ class SemanticKITTITrainer(Trainer):
         self.amp_enabled = amp_enabled
         self.scaler = amp.GradScaler(enabled=self.amp_enabled)
         self.epoch_num = 1
-        self.continue_epoch_num=1
+        self.continue_epoch_num=0
 
     def _before_train(self) -> None:
         if (self.epoch_num < self.continue_epoch_num):
