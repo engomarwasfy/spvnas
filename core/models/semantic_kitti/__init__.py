@@ -1,3 +1,3 @@
 from .minkunet import *
-from .spvcnn import *
+from .spvcnn_original import *
 from .spvnas import *

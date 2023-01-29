@@ -15,7 +15,7 @@
       <excludeFolder url="file://$MODULE_DIR$/.idea/sonarlint/issuestore/8/e" />
       <excludeFolder url="file://$MODULE_DIR$/.idea/sonarlint/issuestore/9/f" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.10 (torch2)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.10 (torch4)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="PyDocumentationSettings">

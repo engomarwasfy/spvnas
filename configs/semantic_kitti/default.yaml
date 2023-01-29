@@ -13,7 +13,7 @@ dataset:
   num_points: 80000
   voxel_size: 0.05
 num_epochs: 15
-batch_size: 2
+batch_size: 3
 
 criterion:
   name: cross_entropy
@@ -24,7 +24,7 @@ optimizer:
   lr: 2.4e-1
   weight_decay: 1.0e-4
   momentum: 0.9
-  nesterov: false
+  nesterov: true
 
 scheduler:
   name: cosine_warmup

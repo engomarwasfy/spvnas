@@ -32,6 +32,7 @@ class SPVNAS(RandomNet):
         super().__init__()
         self.pres = kwargs.get('pres', 0.05)
         self.vres = kwargs.get('vres', 0.05)
+        self.features = None
         self.cr_bounds = kwargs.get('cr_bounds', [0.125, 1.0])
         self.up_cr_bounds = [
             0.125, 1.0
@@ -352,5 +353,5 @@ class SPVNAS(RandomNet):
 
         self.classifier.set_in_channel(z3.F.shape[-1])
         out = self.classifier(z3.F)
-
+        self.features =  point_to_voxel(y4, z3)
         return out

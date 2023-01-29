@@ -4,10 +4,12 @@
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
     <envs>
-      <env name="PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION" value="python" />
       <env name="MASTER_HOST" value="127.0.0.1:3334 " />
+      <env name="PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION" value="python" />
+      <env name="PYTORCH_CUDA_ALLOC_CONF" value="max_split_size_mb:21" />
     </envs>
     <option name="SDK_HOME" value="/opt/conda/envs/torch4/bin/python" />
+    <option name="SDK_NAME" value="Python 3.10 (torch4)" />
     <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
     <option name="IS_MODULE_SDK" value="false" />
     <option name="ADD_CONTENT_ROOTS" value="true" />
